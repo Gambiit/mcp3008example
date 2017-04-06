@@ -6,7 +6,7 @@ It's an example of how to use the node-red mcp3008 node.
 
 A simple loadcell with a INA125 amplifier and the mcp3008, some resistances and capacitors.  
   
-![kicad](./images/loadcell.svg)
+![kicad](./images/loadcell.png)
   
 
 ## node configuration
