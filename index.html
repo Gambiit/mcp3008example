@@ -1,0 +1,244 @@
+<!doctype html>
+<head>
+	<link type="text/css" rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css">
+	<link type="text/css" rel="stylesheet" href="rickshaw/src/css/graph.css">
+	<link type="text/css" rel="stylesheet" href="rickshaw/src/css/detail.css">
+	<link type="text/css" rel="stylesheet" href="rickshaw/src/css/legend.css">
+	<link type="text/css" rel="stylesheet" href="rickshaw/examples/css/extensions.css?v=2">
+
+	<script src="rickshaw/vendor/d3.v3.js"></script>
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+	<script>
+		jQuery.noConflict();
+	</script>
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.15/jquery-ui.min.js"></script>
+
+	<script src="rickshaw/src/js/Rickshaw.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Class.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Compat.ClassList.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Graph.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Graph.Renderer.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Graph.Renderer.Area.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Graph.Renderer.Line.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Graph.Renderer.Bar.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Graph.Renderer.ScatterPlot.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Graph.Renderer.Stack.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Graph.RangeSlider.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Graph.RangeSlider.Preview.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Graph.HoverDetail.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Graph.Annotate.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Graph.Legend.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Graph.Axis.Time.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Graph.Behavior.Series.Toggle.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Graph.Behavior.Series.Order.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Graph.Behavior.Series.Highlight.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Graph.Smoother.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Fixtures.Time.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Fixtures.Time.Local.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Fixtures.Number.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Fixtures.RandomData.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Fixtures.Color.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Color.Palette.js"></script>
+	<script src="rickshaw/src/js/Rickshaw.Graph.Axis.Y.js"></script>
+
+	<script src="rickshaw/examples/js/extensions.js"></script>
+	
+	<script type="text/javascript">
+	  // ouvrir le websocket
+
+// set up our data series with 150 random data points
+
+var seriesData = [ [], [], [], [] ];
+
+for (var i = 0; i < 150; i++) {
+	seriesData[0].push({x: i, y:0});
+	seriesData[1].push({x: i, y:0});
+	seriesData[2].push({x: i, y:0});
+	seriesData[3].push({x: i, y:0});
+}
+
+
+var server = 'nodejsonraspgps'; // the FQDN or IP adress of your rapsberry
+var topics = {};
+var wsUriC = "ws://"+server+":1880/admin/ws/example";
+var ws;
+
+function wsConnectC() {
+
+  ws = new WebSocket(wsUriC);
+  console.log(wsUriC);
+  ws.onmessage = function(msg) {
+    var data = JSON.parse(msg.data);
+    var index = seriesData[0][149].x+1;
+    // console.log(index,'-',seriesData[0].length,'-',data.brut);
+    
+    seriesData[0].shift();
+    seriesData[0].push({x: index, y: data.brut});
+    // seriesData[0].push({x: index, y: 10});
+    seriesData[1].shift();
+    seriesData[1].push({x: index, y: data.rect});
+    //seriesData[1].push({x: index, y: 20});
+    seriesData[2].shift();
+    seriesData[2].push({x: index, y: data.exp});
+    //seriesData[2].push({x: index, y: 30});
+    seriesData[3].shift();
+    seriesData[3].push({x: index, y: data.moy});
+    //seriesData[3].push({x: index, y: 40});
+    graph.update();
+    };
+  ws.onopen = function() {};
+  ws.onclose = function() {
+    setTimeout(wsConnectC,1000);
+    };
+  } // fin wsConnectC
+
+	</script>
+</head>
+<body onload="wsConnectC();" onunload="ws.disconnect;">
+
+<div id="content">
+
+	<form id="side_panel">
+		<h1>Acquisition loadcell</h1>
+		<section><div id="legend"></div></section>
+	</form>
+	
+	<div id="chart_container">
+		<div id="chart"></div>
+		<div id="timeline"></div>
+		<div id="preview"></div>
+	</div>
+	
+<script>
+var palette = new Rickshaw.Color.Palette();
+
+// instantiate our graph!
+
+var graph = new Rickshaw.Graph( {
+	element: document.getElementById("chart"),
+	width: 900,
+	height: 500,
+	//min : 940,
+	//max : 980,
+	renderer: 'line',
+	interpolation : 'cardinal',
+	stroke: true,
+	preserve: true,
+	series: [
+		{
+			color: palette.color(),
+			data: seriesData[0],
+			name: 'brut'
+		}, {
+			color: palette.color(),
+			data: seriesData[1],
+			name: 'rect'
+		}, {
+			color: palette.color(),
+			data: seriesData[2],
+			name: 'exp'
+		}, {
+			color: palette.color(),
+			data: seriesData[3],
+			name: 'moy'
+		}
+	]
+} );
+
+graph.render();
+
+var preview = new Rickshaw.Graph.RangeSlider( {
+	graph: graph,
+	element: document.getElementById('preview'),
+} );
+
+var hoverDetail = new Rickshaw.Graph.HoverDetail( {
+	graph: graph,
+	xFormatter: function(x) {
+		return x.toString();
+	}
+} );
+
+var annotator = new Rickshaw.Graph.Annotate( {
+	graph: graph,
+	element: document.getElementById('timeline')
+} );
+
+var legend = new Rickshaw.Graph.Legend( {
+	graph: graph,
+	element: document.getElementById('legend')
+
+} );
+
+var shelving = new Rickshaw.Graph.Behavior.Series.Toggle( {
+	graph: graph,
+	legend: legend
+} );
+
+var order = new Rickshaw.Graph.Behavior.Series.Order( {
+	graph: graph,
+	legend: legend
+} );
+
+var highlighter = new Rickshaw.Graph.Behavior.Series.Highlight( {
+	graph: graph,
+	legend: legend
+} );
+
+var smoother = new Rickshaw.Graph.Smoother( {
+	graph: graph,
+	element: document.querySelector('#smoother')
+} );
+
+var ticksTreatment = 'glow';
+
+// var xAxis = new Rickshaw.Graph.Axis.Time( {
+//	graph: graph,
+//	ticksTreatment: ticksTreatment,
+//	timeFixture: new Rickshaw.Fixtures.Time.Local()
+//} );
+
+//xAxis.render();
+
+var yAxis = new Rickshaw.Graph.Axis.Y( {
+	graph: graph,
+	tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
+	ticksTreatment: ticksTreatment
+} );
+
+yAxis.render();
+
+
+var controls = new RenderControls( {
+	element: document.querySelector('form'),
+	graph: graph
+} );
+
+// add some data every so often
+
+var messages = [
+	"Changed home page welcome message",
+	"Minified JS and CSS",
+	"Changed button color from blue to green",
+	"Refactored SQL query to use indexed columns",
+	"Added additional logging for debugging",
+	"Fixed typo",
+	"Rewrite conditional logic for clarity",
+	"Added documentation for new methods"
+];
+
+
+
+// var previewXAxis = new Rickshaw.Graph.Axis.Time({
+//	graph: preview.previews[0],
+//	timeFixture: new Rickshaw.Fixtures.Time.Local(),
+//	ticksTreatment: ticksTreatment
+//});
+
+//previewXAxis.render();
+
+</script>
+
+</body>
